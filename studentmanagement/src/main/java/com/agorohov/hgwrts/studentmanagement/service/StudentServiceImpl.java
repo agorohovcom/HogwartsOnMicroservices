@@ -60,16 +60,19 @@ public class StudentServiceImpl implements StudentService {
         return StudentMapper.entityToDto(result);
     }
 
+    // TODO сделать чтобы была проверка из бд нет ли факультета у studentDto перед назначением нового факультета
     @Override
     public StudentDto assignFaculty(StudentDto studentDto) {
         if(studentDto.getFaculty() != null){
             throw new FacultyAlreadyAssignedException("У студента уже есть факультет: " + studentDto.getFaculty());
         }
-        return restTemplate.postForObject(
+        StudentDto result = restTemplate.postForObject(
                 "http://localhost:3456/assign_faculty",
                 studentDto,
                 StudentDto.class,
                 studentDto
         );
+        studentRepository.save(StudentMapper.dtoToEntity(result));
+        return result;
     }
 }

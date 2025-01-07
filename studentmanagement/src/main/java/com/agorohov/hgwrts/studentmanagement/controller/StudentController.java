@@ -55,7 +55,7 @@ public class StudentController {
     }
 
     @PostMapping("/assign_faculty")
-    public ResponseEntity<StudentDto> selectFaculty(@RequestBody StudentDto studentDto) {
+    public ResponseEntity<StudentDto> assignFaculty(@RequestBody StudentDto studentDto) {
         StudentDto result = studentService.assignFaculty(studentDto);
 
         return ResponseEntity
