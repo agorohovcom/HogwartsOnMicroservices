@@ -8,7 +8,8 @@ import com.agorohov.hgwrts.studentmanagement.exception.StudentNotFoundException;
 import com.agorohov.hgwrts.studentmanagement.repository.StudentRepository;
 import com.agorohov.hgwrts.studentmanagement.util.StudentMapper;
 import org.springframework.stereotype.Service;
-import org.springframework.web.client.RestTemplate;
+import org.springframework.web.reactive.function.client.WebClient;
+import reactor.core.publisher.Mono;
 
 import java.util.List;
 import java.util.Optional;
@@ -17,11 +18,11 @@ import java.util.Optional;
 public class StudentServiceImpl implements StudentService {
 
     private final StudentRepository studentRepository;
-    private final RestTemplate restTemplate;
+    private final WebClient webClient;
 
-    public StudentServiceImpl(StudentRepository studentRepository, RestTemplate restTemplate) {
+    public StudentServiceImpl(StudentRepository studentRepository, WebClient webClient) {
         this.studentRepository = studentRepository;
-        this.restTemplate = restTemplate;
+        this.webClient = webClient;
     }
 
     @Override
@@ -61,18 +62,41 @@ public class StudentServiceImpl implements StudentService {
     }
 
     // TODO сделать чтобы была проверка из бд нет ли факультета у studentDto перед назначением нового факультета
+    // Использование WebClient
     @Override
     public StudentDto assignFaculty(StudentDto studentDto) {
-        if(studentDto.getFaculty() != null){
+        if (studentDto.getFaculty() != null) {
             throw new FacultyAlreadyAssignedException("У студента уже есть факультет: " + studentDto.getFaculty());
         }
-        StudentDto result = restTemplate.postForObject(
-                "http://localhost:3456/assign_faculty",
-                studentDto,
-                StudentDto.class,
-                studentDto
-        );
-        studentRepository.save(StudentMapper.dtoToEntity(result));
+
+        Mono<StudentDto> response = webClient.post()
+                .uri("http://localhost:3456/assign_faculty")
+                .bodyValue(studentDto)
+                .retrieve()
+                .bodyToMono(StudentDto.class);
+
+        StudentDto result = response.block();
+
+        if (result != null) {
+            studentRepository.save(StudentMapper.dtoToEntity(result));
+        }
+
         return result;
     }
+
+    // Использование RestTemplate
+//    @Override
+//    public StudentDto assignFaculty(StudentDto studentDto) {
+//        if (studentDto.getFaculty() != null) {
+//            throw new FacultyAlreadyAssignedException("У студента уже есть факультет: " + studentDto.getFaculty());
+//        }
+//        StudentDto result = restTemplate.postForObject(
+//                "http://localhost:3456/assign_faculty",
+//                studentDto,
+//                StudentDto.class,
+//                studentDto
+//        );
+//        studentRepository.save(StudentMapper.dtoToEntity(result));
+//        return result;
+//    }
 }
